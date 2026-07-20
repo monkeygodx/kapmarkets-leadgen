@@ -62,16 +62,14 @@
     aspect-ratio:16/10;
     border-radius:10px;
     border:1px solid var(--panel-border);
-    background:#000;
+    background:var(--panel);
     overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
   }
   .result-card img{
     width:100%;
     height:100%;
-    object-fit:contain;
+    object-fit:cover;
+    object-position:top;
     display:block;
   }
   .result-card .result-label{
