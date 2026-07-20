@@ -146,6 +146,30 @@
     color:var(--muted);
     padding:20px 0;
   }
+  .wallet-buttons{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:20px;
+  }
+  #apple-pay-button, #google-pay-button{
+    width:100%;
+    min-height:48px;
+  }
+  .wallet-divider{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:0 0 20px;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .wallet-divider::before, .wallet-divider::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--panel-border);
+  }
 </style>
 </head>
 <body>
@@ -195,8 +219,67 @@
     renderForm(product);
 
     let payments, card;
+    const paymentRequest = payments0 => payments0.paymentRequest({
+      countryCode: 'US',
+      currencyCode: 'USD',
+      total: {
+        amount: (product.priceCents / 100).toFixed(2),
+        label: product.name
+      }
+    });
+
     try {
       payments = window.Square.payments(config.squareApplicationId, config.squareLocationId);
+    } catch (err) {
+      showFatalError('Could not load the payment system. Please refresh and try again.');
+      return;
+    }
+
+    // Apple Pay — only renders where the browser/device actually supports it (Safari on Apple devices)
+    try {
+      const req = paymentRequest(payments);
+      const applePay = await payments.applePay(req);
+      await applePay.attach('#apple-pay-button', { buttonColor: 'black', buttonType: 'pay' });
+      document.getElementById('apple-pay-button').addEventListener('click', () => handleWalletPay(applePay));
+    } catch (err) {
+      const el = document.getElementById('apple-pay-button');
+      if (el) el.style.display = 'none';
+    }
+
+    // Google Pay — only renders where the browser/device actually supports it
+    try {
+      const req = paymentRequest(payments);
+      const googlePay = await payments.googlePay(req);
+      await googlePay.attach('#google-pay-button', { buttonColor: 'black', buttonType: 'pay' });
+      document.getElementById('google-pay-button').addEventListener('click', () => handleWalletPay(googlePay));
+    } catch (err) {
+      const el = document.getElementById('google-pay-button');
+      if (el) el.style.display = 'none';
+    }
+
+    async function handleWalletPay(method){
+      clearFormError();
+      try {
+        const tokenResult = await method.tokenize();
+        if (tokenResult.status !== 'OK') {
+          throw new Error(tokenResult.errors?.[0]?.message || 'Payment was not completed.');
+        }
+        const res = await fetch('/api/process-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, sourceId: tokenResult.token })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Payment failed.');
+        }
+        window.location.href = `/download.html?order=${data.orderRef}`;
+      } catch (err) {
+        showFormError(err.message || 'Something went wrong. Please try again.');
+      }
+    }
+
+    try {
       card = await payments.card({
         style: {
           input: {
@@ -269,6 +352,11 @@
         <span class="name">${product.name}</span>
         <span class="price">$${(product.priceCents / 100).toFixed(2)}</span>
       </div>
+      <div class="wallet-buttons">
+        <div id="apple-pay-button"></div>
+        <div id="google-pay-button"></div>
+      </div>
+      <p class="wallet-divider">or pay with card</p>
       <span class="field-label">Card details</span>
       <div id="card-container"></div>
       <button class="pay-btn" id="payBtn">Pay Now</button>
