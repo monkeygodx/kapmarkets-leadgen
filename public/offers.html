@@ -57,14 +57,29 @@
     border-radius:16px;
     padding:12px;
   }
-  .result-card img{
+  .result-card .img-frame{
     width:100%;
     aspect-ratio:16/10;
-    object-fit:cover;
-    object-position:top;
     border-radius:10px;
-    display:block;
     border:1px solid var(--panel-border);
+    background:#000;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .result-card img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+  }
+  .result-card .result-label{
+    text-align:center;
+    font-size:14px;
+    font-weight:600;
+    color:var(--muted);
+    margin:12px 0 4px;
   }
   .disclaimer-note{
     text-align:center;
@@ -274,16 +289,20 @@
     <h2 class="section-heading">The Results Speak for Themselves</h2>
     <div class="results-grid">
       <div class="result-card">
-        <img src="/result-kapsmiths.png" alt="Result screenshot">
+        <div class="img-frame"><img src="/result-kapsmiths.png" alt="Result screenshot"></div>
+        <p class="result-label">Client 1</p>
       </div>
       <div class="result-card">
-        <img src="/result-monkey.png" alt="Result screenshot">
+        <div class="img-frame"><img src="/result-monkey.png" alt="Result screenshot"></div>
+        <p class="result-label">Client 2</p>
       </div>
       <div class="result-card">
-        <img src="/result-kap.png" alt="Result screenshot">
+        <div class="img-frame"><img src="/result-kap.png" alt="Result screenshot"></div>
+        <p class="result-label">Client 3</p>
       </div>
       <div class="result-card">
-        <img src="/result-dashboard.png" alt="Result screenshot">
+        <div class="img-frame"><img src="/result-dashboard.png" alt="Result screenshot"></div>
+        <p class="result-label">Business Client 1</p>
       </div>
     </div>
     <p class="disclaimer-note"><b>DISCLAIMER:</b> Usernames and profile pictures are blurred out for client discretion.</p>
