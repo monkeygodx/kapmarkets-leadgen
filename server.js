@@ -60,7 +60,14 @@ async function initDb() {
 }
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
+
+// Explicit route as a guaranteed fallback for Apple Pay domain verification —
+// static dotfile serving alone is enough once 'dotfiles: allow' is set above,
+// but this route ensures it works even if static config changes later.
+app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', '.well-known', 'apple-developer-merchantid-domain-association'));
+});
 
 app.post('/api/leads', async (req, res) => {
   const { fullName, email, countryCode, phone, smsFollowup, smsPromo } = req.body || {};
