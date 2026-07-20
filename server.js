@@ -70,7 +70,17 @@ app.use(express.json());
 // not from disk. Registered BEFORE express.static so it always wins, even if
 // a stale/broken .well-known file is still sitting in the repo from earlier attempts.
 app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
-  res.type('application/json').send(APPLE_PAY_DOMAIN_ASSOCIATION);
+  const body = APPLE_PAY_DOMAIN_ASSOCIATION;
+  res.set('Content-Type', 'application/json');
+  res.set('Content-Length', Buffer.byteLength(body, 'utf8'));
+  res.status(200).end(body);
+});
+
+app.head('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
+  const body = APPLE_PAY_DOMAIN_ASSOCIATION;
+  res.set('Content-Type', 'application/json');
+  res.set('Content-Length', Buffer.byteLength(body, 'utf8'));
+  res.status(200).end();
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
