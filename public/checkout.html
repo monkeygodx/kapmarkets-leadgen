@@ -242,6 +242,7 @@
       await applePay.attach('#apple-pay-button', { buttonColor: 'black', buttonType: 'pay' });
       document.getElementById('apple-pay-button').addEventListener('click', () => handleWalletPay(applePay));
     } catch (err) {
+      console.error('Apple Pay init failed:', err);
       const el = document.getElementById('apple-pay-button');
       if (el) el.style.display = 'none';
     }
