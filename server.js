@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 const SQUARE_ACCESS_TOKEN = process.env.SQUARE_ACCESS_TOKEN;
 const SQUARE_LOCATION_ID = process.env.SQUARE_LOCATION_ID;
+const SQUARE_APPLICATION_ID = process.env.SQUARE_APPLICATION_ID;
 const SQUARE_ENV = process.env.SQUARE_ENV || 'production'; // 'production' or 'sandbox'
 const SQUARE_API_BASE = SQUARE_ENV === 'sandbox'
   ? 'https://connect.squareupsandbox.com'
@@ -113,6 +114,91 @@ app.get('/api/leads', async (req, res) => {
 });
 
 app.get('/health', (req, res) => res.json({ ok: true }));
+
+// Public config for the frontend Web Payments SDK — application ID and location ID
+// are not secret (they're meant to be used client-side); the access token never is.
+app.get('/api/config', (req, res) => {
+  res.json({
+    squareApplicationId: SQUARE_APPLICATION_ID || null,
+    squareLocationId: SQUARE_LOCATION_ID || null,
+    squareEnv: SQUARE_ENV
+  });
+});
+
+// Product lookup for the checkout page to render name/price without duplicating it in HTML
+app.get('/api/products/:productId', (req, res) => {
+  const product = PRODUCTS[req.params.productId];
+  if (!product) {
+    return res.status(404).json({ error: 'unknown productId' });
+  }
+  res.json({ productId: req.params.productId, name: product.name, priceCents: product.priceCents });
+});
+
+// Charges a card directly using a Square Web Payments SDK token (sourceId).
+// This is what powers the on-site checkout page instead of redirecting to Square.
+app.post('/api/process-payment', async (req, res) => {
+  const { productId, sourceId } = req.body || {};
+  const product = PRODUCTS[productId];
+
+  if (!product) {
+    return res.status(400).json({ error: 'unknown productId' });
+  }
+  if (!sourceId) {
+    return res.status(400).json({ error: 'missing payment token' });
+  }
+  if (!SQUARE_ACCESS_TOKEN || !SQUARE_LOCATION_ID) {
+    return res.status(500).json({ error: 'Square is not configured on this server' });
+  }
+
+  const orderRef = crypto.randomUUID();
+
+  try {
+    await pool.query(
+      `INSERT INTO orders (order_ref, product_id, product_name, price_cents, status)
+       VALUES ($1, $2, $3, $4, 'pending')`,
+      [orderRef, productId, product.name, product.priceCents]
+    );
+
+    const squareRes = await fetch(`${SQUARE_API_BASE}/v2/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SQUARE_ACCESS_TOKEN}`,
+        'Square-Version': '2024-06-20'
+      },
+      body: JSON.stringify({
+        idempotency_key: orderRef,
+        source_id: sourceId,
+        location_id: SQUARE_LOCATION_ID,
+        amount_money: {
+          amount: product.priceCents,
+          currency: 'USD'
+        },
+        note: `${product.name} — order ${orderRef}`
+      })
+    });
+
+    const data = await squareRes.json();
+
+    if (!squareRes.ok || !data.payment || data.payment.status !== 'COMPLETED') {
+      console.error('Square payment error:', data);
+      await pool.query(`UPDATE orders SET status = 'failed' WHERE order_ref = $1`, [orderRef]);
+      const declineMsg = data.errors && data.errors[0] ? data.errors[0].detail : 'Payment was declined.';
+      return res.status(402).json({ error: declineMsg });
+    }
+
+    await pool.query(
+      `UPDATE orders SET status = 'paid', square_order_id = $1 WHERE order_ref = $2`,
+      [data.payment.order_id || null, orderRef]
+    );
+
+    return res.json({ orderRef, status: 'paid' });
+  } catch (err) {
+    console.error('Payment processing failed:', err);
+    await pool.query(`UPDATE orders SET status = 'failed' WHERE order_ref = $1`, [orderRef]).catch(() => {});
+    return res.status(500).json({ error: 'Payment processing failed. Please try again.' });
+  }
+});
 
 // Create a Square-hosted checkout link for a product and redirect the buyer there
 app.post('/api/checkout', async (req, res) => {
