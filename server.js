@@ -65,13 +65,15 @@ async function initDb() {
 }
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
 
 // Apple Pay domain verification — served from the embedded constant above,
-// not from disk, so it can't break due to how the file landed in the repo.
+// not from disk. Registered BEFORE express.static so it always wins, even if
+// a stale/broken .well-known file is still sitting in the repo from earlier attempts.
 app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
   res.type('application/json').send(APPLE_PAY_DOMAIN_ASSOCIATION);
 });
+
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
 
 app.post('/api/leads', async (req, res) => {
   const { fullName, email, countryCode, phone, smsFollowup, smsPromo } = req.body || {};
