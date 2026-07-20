@@ -1,4 +1,4 @@
-[README-2.md](https://github.com/user-attachments/files/30186258/README-2.md)
+[README-3.md](https://github.com/user-attachments/files/30186602/README-3.md)
 # KapMarkets Lead Gen
 
 Static landing page + Express backend that saves leads to Postgres.
@@ -26,11 +26,27 @@ Visit http://localhost:3000
    - `SQUARE_ACCESS_TOKEN` — from your Square Developer Dashboard → Applications → your app → Credentials.
      Use the **Production** access token once you're ready to take real payments, or the
      **Sandbox** token for testing (pair with `SQUARE_ENV=sandbox`).
+   - `SQUARE_APPLICATION_ID` — same Credentials page, listed alongside the access token.
+     This one is safe to expose client-side (the checkout page's Web Payments SDK needs it)
+     — it's not a secret the way the access token is.
    - `SQUARE_LOCATION_ID` — Square Dashboard → Locations, or via the Locations API.
    - `SQUARE_ENV` — set to `sandbox` while testing, `production` when live. Defaults to `production` if unset.
    - `PUBLIC_URL` — your live domain, e.g. `https://kapmarkets.com`. Used to build the redirect
      link Square sends buyers back to after payment. Must not have a trailing slash.
 6. Deploy. Railway gives you a live URL under Settings → Networking → Generate Domain.
+
+## Checkout flow (on-site, not Square-hosted)
+
+Buyers no longer leave your site to pay — `checkout.html` embeds Square's card form directly
+and matches your site's dark/green styling. Flow:
+
+1. "Buy Now" on `index.html` → `/checkout.html?product=<id>`
+2. Checkout page loads the product name/price from `/api/products/:id` and renders
+   Square's card input via the Web Payments SDK (`square.js`).
+3. On submit, the card is tokenized client-side (raw card number never hits your server),
+   then the token is sent to `POST /api/process-payment`, which charges it via Square's
+   Payments API.
+4. On success, redirect to `/download.html?order=<ref>`, same verification flow as before.
 
 ## Before you take real money — edit these
 
