@@ -464,30 +464,9 @@
 
   // --- E-book purchase buttons ---
   document.querySelectorAll('.buy-btn').forEach(btn => {
-    btn.addEventListener('click', async function(){
+    btn.addEventListener('click', function(){
       const productId = btn.getAttribute('data-product');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Loading...';
-
-      try {
-        const res = await fetch('/api/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId })
-        });
-        const data = await res.json();
-
-        if (!res.ok || !data.checkoutUrl) {
-          throw new Error(data.error || 'checkout failed');
-        }
-
-        window.location.href = data.checkoutUrl;
-      } catch (err) {
-        btn.disabled = false;
-        btn.textContent = originalText;
-        alert('Could not start checkout. Please try again in a moment.');
-      }
+      window.location.href = `/checkout.html?product=${productId}`;
     });
   });
 </script>
