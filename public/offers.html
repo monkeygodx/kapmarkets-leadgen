@@ -48,7 +48,7 @@
   }
   .results-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(420px,1fr));
     gap:20px;
   }
   .result-card{
@@ -68,9 +68,13 @@
   }
   .disclaimer-note{
     text-align:center;
-    color:#5a5a60;
+    color:var(--muted);
     font-size:13px;
-    margin:20px 0 0;
+    margin:48px 0 0;
+  }
+  .disclaimer-note b{
+    color:#e4e4e7;
+    font-weight:700;
   }
 
   /* --- Pricing / e-book section --- */
@@ -282,7 +286,7 @@
         <img src="/result-dashboard.png" alt="Result screenshot">
       </div>
     </div>
-    <p class="disclaimer-note">Usernames and profile pictures are blurred out for client discretion.</p>
+    <p class="disclaimer-note"><b>DISCLAIMER:</b> Usernames and profile pictures are blurred out for client discretion.</p>
   </div>
 
   <!-- ===== VIDEO CASE STUDIES SECTION =====
